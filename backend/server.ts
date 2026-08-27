@@ -1,7 +1,8 @@
 import express from "express";
+import type { Express, Request, Response } from "express";
 import cors from "cors";
 
-const app = express();
+const app: Express = express();
 
 const corsOptions = {
     origin: ["http://localhost:5173"]
@@ -9,12 +10,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 
-app.get("/", (req, res) => {
+app.get("/", (req: Request, res: Response) => {
     res.json({
         testVar: "hello"
     })
 }) 
 
 app.listen(8080, () => {
-    console.log("Server started on port 8080")
+    console.log("Server listening on port 8080")
 })
