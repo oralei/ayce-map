@@ -3,3 +3,162 @@
 h1, h2 {
     font-size: 25px;
 }
+
+:root{
+  --bg: #fff8fb;
+  --panel: #ffffff;
+  --panel-soft: #fdeef4;
+  --brand-a: #ff6fa8;
+  --brand-b: #c93868;
+  --hi: #ffffff;
+  --lo: #c9789e;
+  --ink: #3a1226;
+  --ink-soft: #8a5a70;
+  --tag: #ffcfe3;
+  --tag-border: #d97fa8;
+  --tag-active: #ff5f96;
+  --grid: #f1c3d8;
+  --pin: #c93868;
+  --pin-active: #3a1226;
+  font-family: Consolas, "DejaVu Sans Mono", "Courier New", monospace;
+}
+
+*{ box-sizing: border-box; border-radius: 0 !important; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 100vh top fold container ---------- */
+.viewport {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* ---------- header ---------- */
+.app-header{
+  flex: 0 0 auto;
+  display: flex; 
+  align-items: center; 
+  gap: 18px;
+  padding: 12px 20px;
+  background: linear-gradient(90deg, var(--brand-a), var(--brand-b));
+  color: #fff;
+}
+.logo{ display: flex; align-items: baseline; gap: 10px; flex: 0 0 auto; }
+.logo .mark{ font-weight: 900; font-size: 21px; letter-spacing: 1px; }
+.logo .tag{ font-size: 10.5px; opacity: 0.85; letter-spacing: 0.5px; }
+
+.search-wrap{
+  flex: 1; max-width: 460px; display: flex; align-items: center; gap: 8px;
+  background: #fff; padding: 0 10px;
+  border-top: 2px solid var(--lo); border-left: 2px solid var(--lo);
+  border-right: 2px solid #ffe1ec; border-bottom: 2px solid #ffe1ec;
+}
+.search-wrap .glyph{ color: var(--ink-soft); font-size: 12px; }
+.search-wrap input{
+  border: 0; outline: 0; background: transparent; font-family: inherit;
+  font-size: 12.5px; padding: 8px 0; width: 100%; color: var(--ink);
+}
+
+.stat-pill{
+  margin-left: auto; flex: 0 0 auto;
+  font-size: 11px; padding: 7px 12px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.55);
+  white-space: nowrap;
+}
+
+/* ---------- main map / info area ---------- */
+.main{
+  flex: 1; 
+  min-height: 0;
+  display: grid; 
+  grid-template-columns: 1.15fr 1fr; 
+  gap: 10px;
+  padding: 10px 20px 20px 20px;
+}
+@media (max-width: 760px){
+  .main{ grid-template-columns: 1fr; grid-template-rows: 38vh 1fr; }
+  .stat-pill{ display: none; }
+}
+
+.panel-label{
+  font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--brand-b); margin-bottom: 6px; display: block;
+}
+
+.map-wrap, .info-wrap{ height: 100%; display: flex; flex-direction: column; min-height: 0; }
+
+.map-panel{
+  flex: 1; min-height: 0; position: relative; overflow: hidden;
+  border: 2px solid var(--lo);
+}
+
+/* ---------- pins/markers ---------- */
+.pin{
+  position: absolute; width: 18px; height: 18px; transform: translate(-50%,-100%);
+  background: var(--pin); border: 2px solid var(--ink); color: #fff;
+  font-size: 10px; font-weight: 900; display: grid; place-items: center; cursor: pointer;
+}
+.pin::after{
+  content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
+  width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent;
+  border-top: 6px solid var(--ink);
+}
+.pin.active{ background: var(--pin-active); box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--pin-active); }
+.pin.hidden{ display: none; }
+
+/* ---------- side panel (info/info) ---------- */
+.info-panel{
+  flex: 1; min-height: 0; overflow-y: auto;
+  background: #fff; padding: 8px;
+  border: 2px solid var(--lo);
+}
+.info-panel::-webkit-scrollbar{ width: 14px; }
+.info-panel::-webkit-scrollbar-track{ background: var(--panel-soft); }
+.info-panel::-webkit-scrollbar-thumb{
+  background: var(--panel-soft);
+  border-top: 2px solid #fff; border-left: 2px solid #fff;
+  border-right: 2px solid var(--lo); border-bottom: 2px solid var(--lo);
+}
+
+/* ---------- below fold section for testing ---------- */
+.below-viewport {
+  padding: 40px 20px;
+  background: #fff;
+  border-top: 3px dashed var(--lo);
+  flex-shrink: 0;
+}
+
+/* Style the main table container */
+table {
+  width: 100%;
+  max-width: 600px;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 16px;
+  font-family: inherit;
+  text-align: left;
+  border: 2px solid var(--lo);
+}
+
+/* Style table headers */
+th {
+  background-color: var(--brand-a);
+  color: #ffffff;
+  font-weight: bold;
+  padding: 12px 15px;
+}
+
+/* Style table data cells */
+td {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--panel-soft);
+}

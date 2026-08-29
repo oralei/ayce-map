@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react'
+import MainMap from './components/MainMap'
+import RestaurantView from './components/RestaurantView'
 import axios from 'axios';
 import './App.css'
+
 interface DemoRow {
-  id: number
   name: string
+  id: number
 }
 
 function App() {
-  const [data, setData] = useState<{ testVar: string } | null>(null)
+  const [selectedPlace, setSelectedPlace] = useState<{ name: string } | null>(null)
 
-  const [rows, setRows] = useState<DemoRow[]>([]) // array of interface DemoRow, default to empty array
+  const [data, setData] = useState<{ testVar: string } | null>(null)
+  const [rows, setRows] = useState<DemoRow[]>([])
   
-  // idk what these for
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-
   useEffect(() => {
+    document.title = "Ayce!";
     axios.get('http://localhost:8080/')
       .then((res) => setData(res.data))
       .catch((err) => console.error(err))
@@ -32,26 +35,59 @@ function App() {
       .finally(() => setLoading(false))
   }, [])
 
-
   return (
-    <div>
-      <title>Ayce</title>
-      <h1 className="font-bold">hi</h1>
-      <p>{data ? data.testVar : 'Loading...'}</p>
+    <div className="app">
+      {/* 100vh Fullscreen Viewport */}
+      <div className="viewport">
+        <header className="app-header">
+          <div className="logo">
+            <span className="mark">Ayce!</span>
+            <span className="tag">all you can eat</span>
+          </div>
+          <div className="search-wrap">
+            <span className="glyph">▸</span>
+            <input id="searchInput" type="text" placeholder="search a restaurant, tag, or item..."/>
+          </div>
+        </header>
 
-      <h2 className="font-bold">Demo Table</h2>
-      {loading && <p>Loading data...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {!loading && !error && (
-        <ul>
-          {rows.map((row) => (
-            <li key={row.id}>
-              ID: {row.id} NAME: {row.name}
-            </li>
-          ))}
-        </ul>
-      )}
+        <div className="main">
+          <MainMap onSelectPlace={setSelectedPlace} />
+          <div className="info-wrap">
+            <span className="panel-label">info ▸ restaurant ▸ item</span>
+            <div className="info-panel" id="infoPanel">
+              <RestaurantView restaurant_name={selectedPlace?.name ?? null} />
+            </div>
+          </div>
+        </div>
+      </div>
 
+      {/* Content below the fold */}
+      <div className="below-viewport">
+        <h1 className="font-bold">Backend Testing</h1>
+        <p className="mb-4">{data ? data.testVar : 'Loading test var...'}</p>
+
+        <div className="extras">
+          <h2 className="font-bold">Demo Table</h2>
+          {loading && <p>Loading table rows...</p>}
+          {error && <p className="text-red-500">{error}</p>}
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!loading && !error && rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.name}</td>
+                  <td>{row.id}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

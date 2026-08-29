@@ -45,7 +45,7 @@ app.get("/fetchData", (req, res) => {
             res.send(err)
         }
         else{
-            console.log(result.rows)
+            //console.log(result.rows)
             res.send(result.rows)
         }
     })
