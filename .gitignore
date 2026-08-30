@@ -37,3 +37,9 @@ package-lock.json.bak
 
 # Testing/coverage
 coverage/
+
+# Prisma BS?
+backend/.agents
+backend/.claude
+backend/.windsurf
+backend/skills-lock.json

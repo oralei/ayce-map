@@ -1,11 +1,11 @@
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from '@react-google-maps/api'
 import { useState, useCallback } from 'react'
 
-interface PlaceResult {
+export interface PlaceResult {
     id: string
     google_place_id: string
     name: string
-    address: null
+    address: string | null
     lat: number
     lng: number
     tags: string[]
@@ -58,7 +58,7 @@ export function MainMap({ onSelectPlace }: MainMapProps) {
                 center: map.getCenter() || center,
                 radius: 3000, // Search radius in meters
             },
-            fields: ['id', 'displayName', 'location', 'rating'],
+            fields: ['id', 'displayName', 'location', 'rating', 'formattedAddress'],
             maxResultCount: 15,
         }
 
@@ -69,10 +69,10 @@ export function MainMap({ onSelectPlace }: MainMapProps) {
                 id: place.id,
                 google_place_id: place.id,
                 name: place.displayName || 'Unknown',
-                address: null,
+                address: place.formattedAddress ?? null,
                 lat: place.location?.lat() || 0,
                 lng: place.location?.lng() || 0,
-                tags: ["Test"],
+                tags: ["Test Tag"],
                 rating: place.rating ?? null,
             }))
 
@@ -99,7 +99,7 @@ export function MainMap({ onSelectPlace }: MainMapProps) {
                     position={{ lat: place.lat, lng: place.lng }}
                     onClick={() => {
                         setSelected(place)
-                        onSelectPlace(place)   // <-- notify parent
+                        onSelectPlace(place)
                     }}
                 />
             ))}

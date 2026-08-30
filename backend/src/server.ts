@@ -2,7 +2,8 @@ import express from "express";
 import type { Express, Request, Response } from "express";
 import cors from "cors";
 import dotenv from 'dotenv';
-import { Client } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from './generated/prisma/client.js';
 
 dotenv.config();
 
@@ -10,45 +11,32 @@ const corsOptions = {
     origin: ["http://localhost:5173"]
 }
 
-const con = new Client ({
-    host: process.env.POSTGRES_HOST,
-    user: process.env.POSTGRES_USER,
-    port: Number(process.env.POSTGRES_PORT) || 5432,
-    password: String(process.env.POSTGRES_PW),
-    database: process.env.POSTGRES_DB
-})
-
-con.connect().then(() => console.log("connected"))
+const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({ adapter });
 
 const app: Express = express();
 app.use(cors(corsOptions))
 app.use(express.json());
 
-app.post('/postData', (req, res) => {
-    const {name, id} = req.body 
-    const insert_query = 'INSERT INTO demotable (name,id) VALUES ($1,$2)'
-    con.query(insert_query, [name,id], (err, result) => {
-        if (err){
-            res.send(err)
-        }
-        else{
-            console.log(result)
-            res.send("POSTED DATA")
-        }
-    })
-})
+// get request to check whether a location has been added to a list
+app.get("/location", async (req: Request, res: Response) => {
+    const googlePlaceId = req.query.google_place_id
 
-app.get("/fetchData", (req, res) => {
-    const fetch_query = "SELECT * FROM demotable"
-    con.query(fetch_query, (err, result) => {
-        if (err){
-            res.send(err)
-        }
-        else{
-            //console.log(result.rows)
-            res.send(result.rows)
-        }
-    })
+    if (typeof googlePlaceId !== 'string' || googlePlaceId.length === 0) {
+        return res.status(400).json({ error: 'google_place_id query param is required' })
+    }
+
+    try {
+        const count = await prisma.locations.count({
+            where: { google_place_id: googlePlaceId }
+        });
+        res.json({ exists: count > 0 });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'query failed' });
+    }
 })
 
 app.get("/", (req: Request, res: Response) => {
@@ -64,4 +52,3 @@ app.get("/hi", (req: Request, res: Response) => {
 app.listen(8080, () => {
     console.log("Server listening on port 8080")
 })
-

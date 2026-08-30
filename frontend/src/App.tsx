@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import MainMap from './components/MainMap'
+import type { PlaceResult } from './components/MainMap' // or wherever you export the interface from
 import RestaurantView from './components/RestaurantView'
 import axios from 'axios';
 import './App.css'
@@ -10,7 +11,7 @@ interface DemoRow {
 }
 
 function App() {
-  const [selectedPlace, setSelectedPlace] = useState<{ name: string } | null>(null)
+  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null)
 
   const [data, setData] = useState<{ testVar: string } | null>(null)
   const [rows, setRows] = useState<DemoRow[]>([])
@@ -53,9 +54,9 @@ function App() {
         <div className="main">
           <MainMap onSelectPlace={setSelectedPlace} />
           <div className="info-wrap">
-            <span className="panel-label">info ▸ restaurant ▸ item</span>
+            <span className="panel-label">info ▸ location ▸ item</span>
             <div className="info-panel" id="infoPanel">
-              <RestaurantView restaurant_name={selectedPlace?.name ?? null} />
+              <RestaurantView place={selectedPlace} />
             </div>
           </div>
         </div>
