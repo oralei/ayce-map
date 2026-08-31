@@ -16,10 +16,11 @@ model demotable {
 }
 
 model item_tags {
-  item_id BigInt
-  tag_id  BigInt
-  items   items  @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_fk")
-  tags    tags   @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "tag_fk")
+  item_id  BigInt
+  tag_id   BigInt
+  category String? @db.VarChar(64)
+  items    items   @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_fk")
+  tags     tags    @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "tag_fk")
 
   @@id([item_id, tag_id])
 }
@@ -51,10 +52,10 @@ model locations {
   name            String          @db.VarChar(255)
   longitude       Decimal         @db.Decimal(9, 6)
   latitude        Decimal         @db.Decimal(9, 6)
-  rating          Decimal?        @db.Decimal(2, 2)
+  rating          Decimal?        @db.Decimal(2, 1)
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
-  address         String?         @db.Char
+  address         String?         @db.VarChar(255)
   items           items[]
   location_tags   location_tags[]
 }
@@ -63,9 +64,11 @@ model tags {
   id            BigInt          @id @default(autoincrement())
   name          String          @db.VarChar(50)
   created_at    DateTime?       @default(now()) @db.Timestamptz(6)
+  categories    String[]        @db.VarChar(64)
   item_tags     item_tags[]
   location_tags location_tags[]
 }
 
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
 // model users {
 // }

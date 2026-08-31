@@ -1,0 +1,124 @@
+import { useEffect, useState } from 'react'
+import axios from 'axios'
+import type { PlaceResult } from './MainMap'
+
+interface RestaurantViewProps {
+    place: PlaceResult | null
+}
+
+interface LocationCheck {
+    placeId: string
+    exists: boolean
+}
+
+interface AddErrorState {
+    placeId: string
+    message: string
+}
+
+
+
+export function RestaurantView({ place }: RestaurantViewProps) {
+    const [lastCheck, setLastCheck] = useState<LocationCheck | null>(null)
+    const [adding, setAdding] = useState(false)
+    const [addError, setAddError] = useState<AddErrorState | null>(null)
+
+    useEffect(() => {
+        if (!place) return
+
+        let cancelled = false
+
+        axios.get<{ exists: boolean }>('http://localhost:8080/location', {
+            params: { google_place_id: place.google_place_id },
+        })
+            .then((res) => {
+                if (!cancelled) {
+                    setLastCheck({ placeId: place.google_place_id, exists: res.data.exists })
+                }
+            })
+            .catch((err) => {
+                console.error(err)
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [place])
+
+    // a bool that returns true when the selected place is within the locations table (via google_place_id)
+    const exists = place && lastCheck?.placeId === place.google_place_id ? lastCheck.exists : null
+    // only show an add error if it belongs to the currently selected place
+    const displayedError = place && addError?.placeId === place.google_place_id ? addError.message : null
+
+    const handleAddToList = async () => {
+        if (!place || adding) return
+
+        setAdding(true)
+        setAddError(null)
+
+        try {
+            await axios.post('http://localhost:8080/location', {
+                google_place_id: place.google_place_id,
+                name: place.name,
+                address: place.address,
+                latitude: place.lat,
+                longitude: place.lng,
+                rating: null,
+            })
+            setLastCheck({ placeId: place.google_place_id, exists: true })
+        } catch (err) {
+            console.error(err)
+            setAddError({ placeId: place.google_place_id, message: 'couldn\'t add — try again' })
+        } finally {
+            setAdding(false)
+        }
+    }
+
+    if (!place) {
+        return (
+            <div className="restaurant-info-empty">
+                <span className="empty-glyph">▸</span>
+                <p>select a pin on the map to view details</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="restaurant-info-main">
+            <h1 className="restaurant-name">{place.name}</h1>
+            {place.address != null && <p className="address">{place.address}</p>}
+
+            {place.rating != null && (
+                <div className="rating-block">
+                    {(exists == null || !exists) && <>
+                    <span className="rating-label">Google rating</span>
+                    <span className="rating-value">★ {place.rating}</span></>}
+                    {exists && <>
+                    <span className="rating-label">Your rating</span>
+                    <span className="rating-value">★ {place.rating}</span></>}
+                </div>
+            )}
+
+            <div className="status-row">
+                <span className={`status-indicator ${exists ? 'in-list' : 'not-in-list'}`}>
+                    {exists === null ? 'checking list...' : exists ? '● added to list' : '○ not added to list'}
+                </span>
+            </div>
+
+            {exists === false && (
+                <div className="add-to-list-wrap">
+                    <button
+                        className="add-to-list-btn"
+                        onClick={handleAddToList}
+                        disabled={adding}
+                    >
+                        {adding ? 'adding...' : '+ add to your list'}
+                    </button>
+                    {displayedError && <p className="add-error">{displayedError}</p>}
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default RestaurantView

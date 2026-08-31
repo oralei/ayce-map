@@ -43,7 +43,6 @@ function App() {
         <header className="app-header">
           <div className="logo">
             <span className="mark">Ayce!</span>
-            <span className="tag">all you can eat</span>
           </div>
           <div className="search-wrap">
             <span className="glyph">▸</span>
@@ -51,10 +50,26 @@ function App() {
           </div>
         </header>
 
+        <div className="filter-bar">
+          <span className="filter-label">Filter</span>
+          <div id="tagList" style={{ display: 'flex', gap: '8px', flex: '0 0 auto' }}>
+            {/* all vs. saved locations toggle buttons */}
+            {/* tags go here, default */}
+          </div>
+          <span className="divider"></span>
+          <span className="filter-label">price</span>
+          <div id="priceList" style={{display:'flex', gap:'8px', flex: '0 0 auto' }}>
+            {/* probably some kind of slider, like 0-100 dollars? based on user's orders */}
+            {/* price also tags go here */}
+          </div>
+          <button className="clear-btn" id="clearBtn">clear filters</button>
+        </div>
+
+
         <div className="main">
           <MainMap onSelectPlace={setSelectedPlace} />
           <div className="info-wrap">
-            <span className="panel-label">info ▸ location ▸ item</span>
+            <span className="panel-label">info</span> {/* ▸ location ▸ item */}
             <div className="info-panel" id="infoPanel">
               <RestaurantView place={selectedPlace} />
             </div>

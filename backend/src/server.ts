@@ -16,6 +16,12 @@ const adapter = new PrismaPg({
 });
 const prisma = new PrismaClient({ adapter });
 
+// Prisma returns BigInt for the `id` columns (id BigInt @id @default(autoincrement())),
+// and JSON.stringify throws on BigInt by default. This makes res.json() work everywhere.
+(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
+    return this.toString();
+};
+
 const app: Express = express();
 app.use(cors(corsOptions))
 app.use(express.json());
@@ -29,13 +35,49 @@ app.get("/location", async (req: Request, res: Response) => {
     }
 
     try {
-        const count = await prisma.locations.count({
+        const location = await prisma.locations.findUnique({
             where: { google_place_id: googlePlaceId }
         });
-        res.json({ exists: count > 0 });
+        res.json(location ? { exists: true, location } : { exists: false });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'query failed' });
+    }
+})
+
+// post request to add a place to the locations table
+app.post("/location", async (req: Request, res: Response) => {
+    const { google_place_id, name, address, latitude, longitude, rating } = req.body
+
+    if (typeof google_place_id !== 'string' || google_place_id.length === 0) {
+        return res.status(400).json({ error: 'google_place_id is required' })
+    }
+    if (typeof name !== 'string' || name.length === 0) {
+        return res.status(400).json({ error: 'name is required' })
+    }
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return res.status(400).json({ error: 'latitude and longitude are required numbers' })
+    }
+
+    try {
+        const location = await prisma.locations.create({
+            data: {
+                google_place_id,
+                name,
+                address: address ?? null,
+                latitude,
+                longitude,
+                rating: rating ?? null,
+            },
+        })
+        res.status(201).json(location)
+    } catch (err: any) {
+        // unique constraint on google_place_id -> someone already added this place
+        if (err.code === 'P2002') {
+            return res.status(409).json({ error: 'location already exists' })
+        }
+        console.error(err)
+        res.status(500).json({ error: 'failed to create location' })
     }
 })
 

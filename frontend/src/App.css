@@ -1,17 +1,19 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=PT+Mono&display=swap');
 
 h1, h2 {
     font-size: 25px;
 }
 
 :root{
-  --bg: #fff8fb;
+  --bg: #ffd1e5;
   --panel: #ffffff;
   --panel-soft: #fdeef4;
   --brand-a: #ff6fa8;
   --brand-b: #c93868;
+  --brand-light: #fd9cd2;
   --hi: #ffffff;
-  --lo: #c9789e;
+  --lo: #d56599;
   --ink: #3a1226;
   --ink-soft: #8a5a70;
   --tag: #ffcfe3;
@@ -20,7 +22,13 @@ h1, h2 {
   --grid: #f1c3d8;
   --pin: #c93868;
   --pin-active: #3a1226;
-  font-family: Consolas, "DejaVu Sans Mono", "Courier New", monospace;
+
+  /* neutral chip used for tags without a category style — see Tag.tsx */
+  --tag-grey-bg: #ececed;
+  --tag-grey-border: #b3b8bb;
+  --tag-grey-ink: #55595c;
+
+  font-family: "PT Mono", monospace;
 }
 
 *{ box-sizing: border-box; border-radius: 0 !important; }
@@ -75,6 +83,41 @@ body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
   white-space: nowrap;
 }
 
+/* ---------- filter bar ---------- */
+.filter-bar{
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:8px;
+  padding:9px 20px;
+  background: var(--panel);
+  border-bottom:2px solid var(--lo);
+  overflow-x:auto;
+}
+.filter-label{
+  font-size:10px; text-transform:uppercase; letter-spacing:1.5px;
+  color: var(--ink-soft); flex:0 0 auto;
+}
+.divider{ width:1px; height:18px; background:#e6bdd1; flex:0 0 auto; margin:0 4px; }
+.chip-toggle{
+  font-family:inherit; font-size:11px; cursor:pointer; flex:0 0 auto;
+  padding:5px 10px; color: var(--ink);
+  background: var(--tag);
+  border-top:1px solid #fff; border-left:1px solid #fff;
+  border-right:1px solid var(--tag-border); border-bottom:1px solid var(--tag-border);
+}
+.chip-toggle.on{
+  background: var(--tag-active); color:#fff;
+  border-top:1px solid #ff9dc0; border-left:1px solid #ff9dc0;
+  border-right:1px solid var(--ink); border-bottom:1px solid var(--ink);
+}
+.clear-btn{
+  margin-left:auto; flex:0 0 auto;
+  font-family:inherit; font-size:11px; cursor:pointer;
+  background:none; border:0; color: var(--brand-b); text-decoration:underline;
+  padding:5px 4px; visibility:hidden;
+}
+.clear-btn.show{ visibility:visible; }
+
+
 /* ---------- main map / info area ---------- */
 .main{
   flex: 1; 
@@ -127,6 +170,128 @@ body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
   background: var(--panel-soft);
   border-top: 2px solid #fff; border-left: 2px solid #fff;
   border-right: 2px solid var(--lo); border-bottom: 2px solid var(--lo);
+}
+
+/* ---------- restaurant info panel ---------- */
+.restaurant-info-empty{
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 20px; text-align: center;
+  color: var(--ink-soft); font-size: 12px;
+}
+.restaurant-info-empty .empty-glyph{ font-size: 20px; color: var(--lo); }
+
+.restaurant-info-main{
+  display: flex; flex-direction: column; gap: 10px; padding: 4px;
+}
+
+.restaurant-name{
+  font-size: 24px; font-weight: 900; color: var(--ink);
+  letter-spacing: 0.5px; margin: 0 0 2px 0;
+  padding-bottom: 8px; border-bottom: 2px solid var(--tag);
+}
+
+.address{
+  font-size: 16px; color: var(--ink-soft); margin: 0; line-height: 1.5;
+}
+
+.rating-block{
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel-soft); padding: 8px 10px;
+}
+.rating-label{
+  font-size: 14px; font-weight: 700; letter-spacing: 1px; color: var(--brand-b);
+}
+.rating-value{
+  font-size: 14px; font-weight: 700; color: var(--brand-b);
+}
+
+.status-row{ margin-top: 2px; }
+.status-indicator{
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: lowercase;
+  padding: 10px 16px;
+  box-sizing: border-box;
+}
+.status-indicator.not-in-list{
+  background: #fff; color: var(--ink-soft);
+  border: 2px solid var(--tag-border);
+}
+.status-indicator.in-list{
+  background: var(--tag-active); color: #fff;
+  border: 2px solid var(--brand-b);
+}
+
+/* ---------- panel sections (tags / order history) ---------- */
+.panel-section{
+  display: flex; flex-direction: column; gap: 6px;
+}
+.panel-section-label{
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--ink-soft);
+}
+
+.orders-label{
+  font-size: 24px; font-weight: 700;
+  letter-spacing: 1.5px; color: var(--ink);
+}
+
+/* ---------- tags ---------- */
+.location-tags-list,
+.saved-item-tags{
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+
+.tag{
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+  line-height: 1; white-space: nowrap;
+  padding: 5px 8px;
+  color: var(--tag-grey-ink);
+  background: var(--tag-grey-bg);
+  border: 1px solid var(--tag-grey-border);
+}
+.tag-icon{ display: inline-flex; align-items: center; font-size: 11px; }
+.tag-label{ line-height: 1; }
+
+/* ---------- order history / saved items ---------- */
+.saved-items-list{
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.saved-item{
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--grid);
+}
+
+.saved-item-main{
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
+.saved-item-name{ font-size: 14px; font-weight: 700; color: var(--ink); }
+.saved-item-price{ font-size: 12px; font-weight: 700; color: var(--brand-b); white-space: nowrap; }
+.saved-item-rating{ font-size: 11px; color: var(--ink-soft); }
+
+.add-to-list-btn{
+  align-self: flex-start;
+  font-family: inherit; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 10px 16px; margin-top: 4px;
+  color: #fff; cursor: pointer;
+  background: var(--brand-a);
+  border-top: 2px solid #ffb3d1; border-left: 2px solid #ffb3d1;
+  border-right: 2px solid var(--brand-b); border-bottom: 2px solid var(--brand-b);
+}
+.add-to-list-btn:hover{ 
+  background: var(--brand-light);
+}
+
+.add-to-list-btn:active{
+  border-top: 2px solid var(--brand-b); border-left: 2px solid var(--brand-b);
+  border-right: 2px solid #ffb3d1; border-bottom: 2px solid #ffb3d1;
 }
 
 /* ---------- below fold section for testing ---------- */
