@@ -5,35 +5,12 @@ import RestaurantView from './components/RestaurantView'
 import axios from 'axios';
 import './App.css'
 
-interface DemoRow {
-  name: string
-  id: number
-}
-
 function App() {
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null)
-
-  const [data, setData] = useState<{ testVar: string } | null>(null)
-  const [rows, setRows] = useState<DemoRow[]>([])
-  
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     document.title = "Ayce!";
     axios.get('http://localhost:8080/')
-      .then((res) => setData(res.data))
-      .catch((err) => console.error(err))
-  }, [])
-
-  useEffect(() => {
-    axios.get<DemoRow[]>('http://localhost:8080/fetchData')
-      .then((res) => setRows(res.data))
-      .catch((err) => {
-        console.error(err)
-        setError('Failed to load data')
-      })
-      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -69,7 +46,7 @@ function App() {
         <div className="main">
           <MainMap onSelectPlace={setSelectedPlace} />
           <div className="info-wrap">
-            <span className="panel-label">info</span> {/* ▸ location ▸ item */}
+            <span className="panel-label select-none">info</span> {/* ▸ location ▸ item */}
             <div className="info-panel" id="infoPanel">
               <RestaurantView place={selectedPlace} />
             </div>
@@ -77,7 +54,14 @@ function App() {
         </div>
       </div>
 
-      {/* Content below the fold */}
+      {/* Content below the fold 
+
+      
+      const [rows, setRows] = useState<DemoRow[]>([])
+      
+      const [loading, setLoading] = useState(true)
+      const [error, setError] = useState<string | null>(null)
+
       <div className="below-viewport">
         <h1 className="font-bold">Backend Testing</h1>
         <p className="mb-4">{data ? data.testVar : 'Loading test var...'}</p>
@@ -103,7 +87,7 @@ function App() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

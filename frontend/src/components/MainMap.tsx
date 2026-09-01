@@ -29,8 +29,15 @@ const center = {
 // Map options: Hides all default Google POIs
 const mapOptions: google.maps.MapOptions = {
     styles: [
+        { featureType: 'poi.attraction', stylers: [{ visibility: 'off' }], },
+        { featureType: 'poi.school', stylers: [{ visibility: 'off' }], },
+        { featureType: 'poi.place_of_worship', stylers: [{ visibility: 'off' }], },
+        { featureType: 'poi.park', stylers: [{ visibility: 'off' }], },
+        { featureType: 'poi.medical', stylers: [{ visibility: 'off' }], },
+        { featureType: 'poi.government', stylers: [{ visibility: 'off' }], },
+        { featureType: 'poi.sports_complex', stylers: [{ visibility: 'off' }], },
         {
-            featureType: 'poi',
+            featureType: 'transit',
             stylers: [{ visibility: 'off' }],
         },
     ],
@@ -53,13 +60,13 @@ export function MainMap({ onSelectPlace }: MainMapProps) {
 
         const request: google.maps.places.SearchNearbyRequest = {
             // New Places API: food & drink place types
-            includedTypes: ['restaurant'],               // make a big enum for this later, for now only show "restaurants"
+            includedTypes: ['restaurant', 'fast_food_restaurant', 'cafe', 'diner', 'food_court', 'pub'],               // make a big enum for this later, for now only show "restaurants"
             locationRestriction: {
                 center: map.getCenter() || center,
                 radius: 3000, // Search radius in meters
             },
             fields: ['id', 'displayName', 'location', 'rating', 'formattedAddress'],
-            maxResultCount: 15,
+            maxResultCount: 20,
         }
 
         try {

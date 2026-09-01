@@ -1,7 +1,7 @@
 export function EmptyState() {
     return (
         <div className="restaurant-info-empty">
-            <span className="empty-glyph">▸</span>
+            <span className="empty-glyph select-none">▸</span>
             <p>select a pin on the map to view details</p>
         </div>
     )

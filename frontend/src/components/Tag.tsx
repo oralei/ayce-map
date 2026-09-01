@@ -20,7 +20,7 @@ export function Tag({ label = 'tag', category = null, icon }: TagProps) {
     return (
         <span className="tag" data-category={category ?? undefined} style={colorOverride}>
             {resolvedIcon != null && <span className="tag-icon">{resolvedIcon}</span>}
-            <span className="tag-label">{label}</span>
+            <span className="tag-label select-none">{label}</span>
         </span>
     )
 }

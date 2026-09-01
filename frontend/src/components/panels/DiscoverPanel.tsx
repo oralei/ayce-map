@@ -11,6 +11,7 @@ export function DiscoverPanel({ place, adding, error, onAdd }: DiscoverPanelProp
     return (
         <div className="restaurant-info-main">
             <h1 className="restaurant-name">{place.name}</h1>
+            <hr className="section-divider" />
             {place.address != null && <p className="address">{place.address}</p>}
 
             {place.rating != null && (

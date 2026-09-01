@@ -30,9 +30,10 @@ model items {
   location_id BigInt
   name        String      @db.VarChar(255)
   price       Decimal?    @db.Decimal(10, 2)
-  rating      Int?        @db.SmallInt
+  rating      Decimal?    @db.Decimal(4, 2)
   created_at  DateTime    @default(now()) @db.Timestamptz(6)
   updated_at  DateTime    @default(now()) @db.Timestamptz(6)
+  description String?     @db.VarChar(1000)
   item_tags   item_tags[]
   locations   locations   @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "location_fk")
 }
@@ -52,10 +53,11 @@ model locations {
   name            String          @db.VarChar(255)
   longitude       Decimal         @db.Decimal(9, 6)
   latitude        Decimal         @db.Decimal(9, 6)
-  rating          Decimal?        @db.Decimal(2, 1)
+  rating          Decimal?        @db.Decimal(4, 2)
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
   address         String?         @db.VarChar(255)
+  description     String?         @db.VarChar(1000)
   items           items[]
   location_tags   location_tags[]
 }

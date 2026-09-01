@@ -5,6 +5,8 @@ import EmptyState from './panels/EmptyState'
 import LoadingState from './panels/LoadingState'
 import DiscoverPanel from './panels/DiscoverPanel'
 import ManagePanel from './panels/ManagePanel'
+import type { SavedItemData } from './SavedItem'
+import type { TagChipData } from './tagCategories'
 
 interface RestaurantViewProps {
     place: PlaceResult | null
@@ -18,12 +20,39 @@ export interface LocationRecord {
     address: string | null
     latitude: number
     longitude: number
-    rating: number | null
+    rating: string | number | null // Prisma serializes Decimal as a string
+    tags: TagChipData[] // joined through location_tags -> tags, see server.ts
 }
 
 interface LocationCheckResponse {
     exists: boolean
     location?: LocationRecord
+}
+
+// shape of a row from the 'items' table
+interface ItemRecord {
+    id: string // bigint serialized as string — see server.ts BigInt.toJSON shim
+    location_id: string
+    name: string
+    price: string | number | null // Prisma serializes Decimal as a string
+    rating: string | number | null // Prisma serializes Decimal as a string
+    description: string | null
+    tags: TagChipData[] // joined through item_tags -> tags, see server.ts
+}
+
+interface ItemsResponse {
+    items: ItemRecord[]
+}
+
+function toSavedItemData(item: ItemRecord): SavedItemData {
+    return {
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        rating: item.rating,
+        tags: item.tags,
+        description: item.description,
+    }
 }
 
 interface AddErrorState {
@@ -42,6 +71,7 @@ function getViewState(place: PlaceResult | null, exists: boolean | null): ViewSt
 export function RestaurantView({ place }: RestaurantViewProps) {
     const [lastCheck, setLastCheck] = useState<{ placeId: string; exists: boolean } | null>(null)
     const [location, setLocation] = useState<LocationRecord | null>(null)
+    const [itemsFetch, setItemsFetch] = useState<{ locationId: string; items: SavedItemData[] } | null>(null)
     const [adding, setAdding] = useState(false)
     const [addError, setAddError] = useState<AddErrorState | null>(null)
 
@@ -62,8 +92,25 @@ export function RestaurantView({ place }: RestaurantViewProps) {
         return () => { cancelled = true }
     }, [place])
 
+    useEffect(() => {
+        if (!location) return
+        let cancelled = false
+
+        axios.get<ItemsResponse>('http://localhost:8080/items', {
+            params: { location_id: location.id },
+        })
+            .then((res) => {
+                if (cancelled) return
+                setItemsFetch({ locationId: location.id, items: res.data.items.map(toSavedItemData) })
+            })
+            .catch((err) => console.error(err))
+
+        return () => { cancelled = true }
+    }, [location?.id])
+
     const exists = place && lastCheck?.placeId === place.google_place_id ? lastCheck.exists : null
     const displayedError = place && addError?.placeId === place.google_place_id ? addError.message : null
+    const items = location && itemsFetch?.locationId === location.id ? itemsFetch.items : []
     const viewState = getViewState(place, exists)
 
     const handleAddToList = async () => {
@@ -98,7 +145,7 @@ export function RestaurantView({ place }: RestaurantViewProps) {
         case 'discover':
             return <DiscoverPanel place={place!} adding={adding} error={displayedError} onAdd={handleAddToList} />
         case 'manage':
-            return <ManagePanel place={place!} location={location!} />
+            return <ManagePanel place={place!} location={location!} items={items} />
     }
 }
 
