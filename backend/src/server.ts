@@ -102,7 +102,9 @@ app.post("/location", async (req: Request, res: Response) => {
                 rating: rating ?? null,
             },
         })
-        res.status(201).json(location)
+        // a brand-new location can't have any tags applied yet — keep the
+        // response shape consistent with GET /location's { ...location, tags }
+        res.status(201).json({ ...location, tags: [] })
     } catch (err: any) {
         // unique constraint on google_place_id -> someone already added this place
         if (err.code === 'P2002') {

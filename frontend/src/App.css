@@ -9,6 +9,7 @@ h1, h2 {
   --bg: #ffd1e5;
   --panel: #ffffff;
   --panel-soft: #fdeef4;
+  --panel-softer: #fff4f8;
   --brand-a: #ff6fa8;
   --brand-b: #c93868;
   --brand-light: #fd9cd2;
@@ -204,8 +205,8 @@ body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
 }
 
 .restaurant-description {
-  border: 2px; border-color: var(--lo); outline: 0; background: white; font-family: inherit;
-  font-size: 14px; padding: 4px 3px; width: 100%; color: var(--ink);
+  border: 2px solid var(--bg); outline: 0; background: white; font-family: inherit;
+  font-size: 14px; padding: 4px 6px; width: 100%; color: var(--ink);
 }
 
 .address{
@@ -219,13 +220,17 @@ body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
 }
 .rating-label{
   font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--brand-b);
+  white-space: nowrap; flex-shrink: 0;
 }
 .rating-value{
   font-size: 12px; font-weight: 700; color: var(--brand-b);
+  white-space: nowrap; flex-shrink: 0;
 }
 
 .status-indicator{
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -233,6 +238,7 @@ body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
   box-sizing: border-box;
   flex: 0 0 auto;
   white-space: nowrap;
+  cursor: default;
 }
 .status-indicator.not-in-list{
   background: #fff; color: var(--ink-soft);
@@ -241,6 +247,12 @@ body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
 .status-indicator.in-list{
   background: var(--added-bg); color: var(--added-ink);
   border: 2px solid var(--added-border); padding: 6px 14px;
+  width: 215px; height: 34px; justify-content: center; align-items: center;
+}
+.status-indicator.in-list-removing{
+  background: #fff; color: var(--brand-b);
+  border: 2px solid var(--brand-b); padding: 6px 14px;
+  width: 215px; height: 34px; justify-content: center; align-items: center;
 }
 
 /* ---------- panel sections (tags / order history) ---------- */
@@ -304,25 +316,160 @@ body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
 }
 
 .item-mini-block{
-  align-items: center; gap: 6px; flex: 0 0 auto;
-  background: var(--panel-soft); padding: 6px 10px;
+  display: flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  background: var(--panel-soft); padding: 4px 8px;
   border: 2px solid var(--lo);
+  white-space: nowrap;
+}
+
+.item-mini-block > span,
+.item-mini-block > label {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* keeps the rating badge/edit-row and price badge/edit-row side by side
+   instead of stacking on top of each other */
+.rating-price-row{
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 
 .saved-item{
   display: flex; flex-direction: column; gap: 6px;
   padding: 14px 10px;
   margin-top: 4px; margin-bottom: 4px;
-  background: var(--panel-soft);
+  background: var(--panel-softer);
   border: 2px solid var(--lo);
 }
 
 .saved-item-main{
-  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  position: relative;
+  display: flex; align-items: baseline; gap: 10px;
+  padding-right: 34px; /* reserve room so the pinned actions never overlap the name */
 }
 .saved-item-name{ font-size: 18px; font-weight: 700; color: var(--ink); }
-.saved-item-price{ font-size: 16px; font-weight: 700; color: var(--brand-b); white-space: nowrap; }
-.saved-item-rating{ font-size: 11px; color: var(--ink-soft); }
+.saved-item-price{ font-size: 16px; font-weight: 700; color: var(--brand-b); white-space: nowrap; background: var(--panel-soft);}
+.saved-item-rating{ font-size: 11px; color: var(--ink-soft); background: var(--panel-soft);}
+
+.saved-item-name-input{
+  font-size: 18px; font-weight: 700;
+  width: auto; flex: 1;
+}
+ 
+.edit-icon{
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.edit-icon:hover{ color: var(--brand-b); }
+ 
+.notes-header-row{
+  display: flex; align-items: center; justify-content: space-between;
+}
+ 
+.notes-edit-actions{
+  display: flex; align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+ 
+.notes-display{
+  font-size: 14px; color: var(--ink);
+  margin: 0; padding: 4px 3px;
+  white-space: pre-wrap;
+}
+
+/* ---------- saved item actions (delete/confirm) ---------- */
+.saved-item-actions{
+  position: absolute;
+  top: 0; right: 0;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.confirm-delete-label{
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.3px; white-space: nowrap;
+  color: var(--brand-b);
+}
+
+.icon-btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
+  width: 22px; height: 22px; padding: 0;
+  background: #fff;
+  border-top: 1px solid #fff; border-left: 1px solid #fff;
+  border-right: 1px solid var(--tag-border); border-bottom: 1px solid var(--tag-border);
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: var(--panel-soft);
+  border-top: 1px solid var(--panel-soft); border-left: 1px solid var(--panel-soft);
+  border-right: 1px solid var(--brand-b); border-bottom: 1px solid var(--brand-b);
+}
+
+.cancel-icon:hover {
+    background: var(--color-red-300);
+}
+
+.confirm-icon:hover {
+    background: var(--added-bg);
+}
+
+.icon-btn img{
+  width: 12px; height: 12px;
+  display: block;
+  pointer-events: none;
+}
+
+/* ---------- inputs ---------- */
+.item-input {
+  outline: 0; background: white; font-family: inherit;
+  font-size: 14px; padding: 4px 6px; width: 100%; color: var(--ink);
+}
+
+/* ---------- inline rating / price edit rows ---------- */
+.rating-edit-row,
+.price-edit-row{
+  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.rating-edit-row > span,
+.rating-edit-row > label,
+.price-edit-row > span,
+.price-edit-row > label{
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-b);
+}
+
+.rating-input,
+.item-input.rating-input{
+  width: 50px;
+  max-width: 150px;
+  flex: 0 0 48px;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.price-input,
+.item-input.price-input{
+  width: 80px;
+  max-width: 150px;
+  flex: 0 0 58px;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+/* ---------- new item creation footer ---------- */
+.new-item-footer{
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 8px; margin-top: 4px;
+}
+.new-item-label{
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+  color: var(--brand-b); white-space: nowrap;
+}
 
 .add-new-item-box{
   display: flex; align-items: center; justify-content: center;
@@ -356,11 +503,6 @@ body { background: var(--bg); color: var(--ink); overflow-x: hidden; }
 .add-to-list-btn:active{
   border-top: 2px solid var(--brand-b); border-left: 2px solid var(--brand-b);
   border-right: 2px solid #ffb3d1; border-bottom: 2px solid #ffb3d1;
-}
-
-.item-input {
-  border: 2px; border-color: var(--lo); outline: 0; background: white; font-family: inherit;
-  font-size: 14px; padding: 4px 6px; width: 100%; color: var(--ink);
 }
 
 /* ---------- below fold section for testing ---------- */
