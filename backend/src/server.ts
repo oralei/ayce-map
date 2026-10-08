@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from './generated/prisma/client.js';
 import { request } from "http";
+import locationRoutes from "./routes/locations.js";
+import itemRoutes from "./routes/items.js";
 
 dotenv.config();
 
@@ -26,6 +28,9 @@ const prisma = new PrismaClient({ adapter });
 const app: Express = express();
 app.use(cors(corsOptions))
 app.use(express.json());
+
+app.use("/location", locationRoutes);
+app.use("/item", itemRoutes);
 
 // Shapes a joined `tags` row into the { id, label, category } chip shape the
 // frontend's Tag component expects. item_tags carries its own optional
