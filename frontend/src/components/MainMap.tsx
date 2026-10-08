@@ -1,4 +1,4 @@
-import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from '@react-google-maps/api'
+import { GoogleMap, InfoWindow, useJsApiLoader } from '@react-google-maps/api'
 import { useState, useCallback } from 'react'
 
 export interface PlaceResult {
@@ -43,8 +43,10 @@ const mapOptions: google.maps.MapOptions = {
     ],
 }
 
+// Food & drink place types; POI clicks outside these are ignored
+const FOOD_TYPES = ['restaurant', 'fast_food_restaurant', 'cafe', 'diner', 'food_court', 'pub', 'bar', 'bakery', 'meal_takeaway']
+
 export function MainMap({ onSelectPlace }: MainMapProps) {
-    const [places, setPlaces] = useState<PlaceResult[]>([])
     const [selected, setSelected] = useState<PlaceResult | null>(null)
 
     const { isLoaded } = useJsApiLoader({
@@ -53,41 +55,42 @@ export function MainMap({ onSelectPlace }: MainMapProps) {
         libraries: ['places'],
     })
 
-    // Fetch food & drink places when the map loads
-    const onLoad = useCallback(async (map: google.maps.Map) => {
-        // Load the new Places library
-        const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary
-
-        const request: google.maps.places.SearchNearbyRequest = {
-            // New Places API: food & drink place types
-            includedTypes: ['restaurant', 'fast_food_restaurant', 'cafe', 'diner', 'food_court', 'pub'],               // make a big enum for this later, for now only show "restaurants"
-            locationRestriction: {
-                center: map.getCenter() || center,
-                radius: 3000, // Search radius in meters
-            },
-            fields: ['id', 'displayName', 'location', 'rating', 'formattedAddress'],
-            maxResultCount: 20,
+    // Select a place by clicking one of Google's basemap POIs
+    const onMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
+        // Clicks on empty map have no placeId
+        if (!('placeId' in e) || !e.placeId) {
+            setSelected(null)
+            onSelectPlace(null)
+            return
         }
 
+        const iconEvent = e as google.maps.IconMouseEvent
+        iconEvent.stop() // suppress Google's default POI info card
+
         try {
-            const { places } = await Place.searchNearby(request)
-            
-            const formattedPlaces: PlaceResult[] = places.map((place) => ({
+            const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary
+            const place = new Place({ id: iconEvent.placeId! })
+            await place.fetchFields({ fields: ['id', 'displayName', 'location', 'rating', 'formattedAddress', 'types'] })
+
+            if (!place.types?.some((t) => FOOD_TYPES.includes(t))) return
+
+            const result: PlaceResult = {
                 id: place.id,
                 google_place_id: place.id,
                 name: place.displayName || 'Unknown',
                 address: place.formattedAddress ?? null,
-                lat: place.location?.lat() || 0,
-                lng: place.location?.lng() || 0,
-                tags: ["Test Tag"],
+                lat: place.location?.lat() ?? iconEvent.latLng?.lat() ?? 0,
+                lng: place.location?.lng() ?? iconEvent.latLng?.lng() ?? 0,
+                tags: [],
                 rating: place.rating ?? null,
-            }))
+            }
 
-            setPlaces(formattedPlaces)
+            setSelected(result)
+            onSelectPlace(result)
         } catch (error) {
-            console.error('Error fetching places:', error)
+            console.error('Error fetching place details:', error)
         }
-    }, [])
+    }, [onSelectPlace])
 
     if (!isLoaded) return <></>
 
@@ -97,20 +100,8 @@ export function MainMap({ onSelectPlace }: MainMapProps) {
             center={center}
             options={mapOptions}
             zoom={13}
-            onLoad={onLoad}
+            onClick={onMapClick}
         >
-            {/* Google Places */}
-            {places.map((place) => (
-                <Marker
-                    key={place.id}
-                    position={{ lat: place.lat, lng: place.lng }}
-                    onClick={() => {
-                        setSelected(place)
-                        onSelectPlace(place)
-                    }}
-                />
-            ))}
-
             {selected && (
                 <InfoWindow
                     position={{ lat: selected.lat, lng: selected.lng }}

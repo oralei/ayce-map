@@ -21,6 +21,7 @@ export interface LocationRecord {
     latitude: number
     longitude: number
     rating: string | number | null // Prisma serializes Decimal as a string
+    description: string | null
     tags: TagChipData[] // joined through location_tags -> tags, see server.ts
 }
 
@@ -30,7 +31,7 @@ interface LocationCheckResponse {
 }
 
 // shape of a row from the 'items' table
-interface ItemRecord {
+export interface ItemRecord {
     id: string // bigint serialized as string — see server.ts BigInt.toJSON shim
     location_id: string
     name: string
@@ -71,7 +72,9 @@ function getViewState(place: PlaceResult | null, exists: boolean | null): ViewSt
 export function RestaurantView({ place }: RestaurantViewProps) {
     const [lastCheck, setLastCheck] = useState<{ placeId: string; exists: boolean } | null>(null)
     const [location, setLocation] = useState<LocationRecord | null>(null)
-    const [itemsFetch, setItemsFetch] = useState<{ locationId: string; items: SavedItemData[] } | null>(null)
+    // tied to the exact `location` object it was fetched for, so every fresh
+    // location check (e.g. re-clicking a place) also refetches its items
+    const [itemsFetch, setItemsFetch] = useState<{ location: LocationRecord; items: SavedItemData[] } | null>(null)
     const [adding, setAdding] = useState(false)
     const [addError, setAddError] = useState<AddErrorState | null>(null)
 
@@ -101,16 +104,16 @@ export function RestaurantView({ place }: RestaurantViewProps) {
         })
             .then((res) => {
                 if (cancelled) return
-                setItemsFetch({ locationId: location.id, items: res.data.items.map(toSavedItemData) })
+                setItemsFetch({ location, items: res.data.items.map(toSavedItemData) })
             })
             .catch((err) => console.error(err))
 
         return () => { cancelled = true }
-    }, [location?.id])
+    }, [location])
 
     const exists = place && lastCheck?.placeId === place.google_place_id ? lastCheck.exists : null
     const displayedError = place && addError?.placeId === place.google_place_id ? addError.message : null
-    const items = location && itemsFetch?.locationId === location.id ? itemsFetch.items : []
+    const itemsLoaded = location != null && itemsFetch?.location === location
     const viewState = getViewState(place, exists)
 
     const handleAddToList = async () => {
@@ -145,7 +148,10 @@ export function RestaurantView({ place }: RestaurantViewProps) {
         case 'discover':
             return <DiscoverPanel place={place!} adding={adding} error={displayedError} onAdd={handleAddToList} />
         case 'manage':
-            return <ManagePanel place={place!} location={location!} items={items} />
+            // ManagePanel seeds its local state from props on mount, so wait for
+            // the items to arrive and remount it per location
+            if (!itemsLoaded) return <LoadingState place={place!} />
+            return <ManagePanel key={location!.id} place={place!} location={location!} items={itemsFetch!.items} />
     }
 }
 

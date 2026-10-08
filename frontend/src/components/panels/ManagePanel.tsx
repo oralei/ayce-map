@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import axios from 'axios'
 import type { PlaceResult } from '../MainMap'
-import type { LocationRecord } from '../RestaurantView'
+import type { LocationRecord, ItemRecord } from '../RestaurantView'
 import Tag from '../Tag'
 import SavedItem, { type SavedItemData, type NewSavedItemInput } from '../SavedItem'
 import cancelIcon from '../../assets/icons/cancel-x.svg'
@@ -21,6 +22,8 @@ function formatRating(rating: string | number): string {
     // trims trailing zeros: 8.00 -> "8", 7.50 -> "7.5", 7.25 -> "7.25"
     return num.toFixed(2).replace(/\.?0+$/, '')
 }
+
+type ItemUpdate = Partial<Pick<SavedItemData, 'name' | 'price' | 'rating' | 'description'>>
 
 function makeTempId(): string {
     return `temp-${crypto.randomUUID()}`
@@ -55,7 +58,7 @@ export function ManagePanel({
     const [editingRating, setEditingRating] = useState(false)
 
     // ---- notes editing ----
-    const [notes, setNotes] = useState('')
+    const [notes, setNotes] = useState(location.description ?? '')
     const [notesDraft, setNotesDraft] = useState('')
     const [editingNotes, setEditingNotes] = useState(false)
 
@@ -65,21 +68,60 @@ export function ManagePanel({
         setIsHoveringStatus(false)
     }
 
-    function handleCreateItem(newItem: NewSavedItemInput) {
+    async function handleCreateItem(newItem: NewSavedItemInput) {
+        // show the item immediately under a temp id, then swap in the saved row
+        const tempId = makeTempId()
         const item: SavedItemData = {
-            id: makeTempId(),
+            id: tempId,
             name: newItem.name,
             price: newItem.price,
             rating: newItem.rating,
+            tags: [],
             description: newItem.description
         }
         setItems((prev) => [...prev, item])
         setIsAddingItem(false)
-        // TODO: wire this up to the create-item POST request
+
+        try {
+            const res = await axios.post<ItemRecord>('http://localhost:8080/item', {
+                location_id: location.id,
+                ...newItem
+            })
+            const saved: SavedItemData = {
+                id: res.data.id,
+                name: res.data.name,
+                price: res.data.price,
+                rating: res.data.rating,
+                tags: [], // a brand-new item can't have tags applied yet
+                description: res.data.description
+            }
+            setItems((prev) => prev.map((i) => (i.id === tempId ? saved : i)))
+        } catch (err) {
+            console.error(err)
+            setItems((prev) => prev.filter((i) => i.id !== tempId))
+        }
     }
 
     function handleCancelAddItem() {
         setIsAddingItem(false)
+    }
+
+    // SavedItem keeps its own display state, so this only persists the change
+    // and mirrors it into `items`
+    async function handleUpdateItem(id: string, fields: ItemUpdate) {
+        setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...fields } : i)))
+        // still waiting on POST /item for a real id — nothing to patch yet
+        if (id.startsWith('temp-')) return
+
+        try {
+            await axios.patch(`http://localhost:8080/item/${id}`, fields)
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    async function updateLocation(fields: { rating?: number | null; description?: string | null }) {
+        await axios.patch(`http://localhost:8080/location/${location.id}`, fields)
     }
 
     // ---- rating handlers ----
@@ -88,14 +130,21 @@ export function ManagePanel({
         setEditingRating(true)
     }
 
-    function handleConfirmRating() {
+    async function handleConfirmRating() {
         const trimmed = ratingDraft.trim()
         const finalRating =
             trimmed === '' ? null : Number.isNaN(Number(trimmed)) ? placeRating : clamp(Number(trimmed), 0, 10)
+        const previousRating = placeRating
         setPlaceRating(finalRating)
         setEditingRating(false)
-        // TODO: wire this up to the update-location PATCH request
         onUpdateRating?.(finalRating)
+
+        try {
+            await updateLocation({ rating: finalRating })
+        } catch (err) {
+            console.error(err)
+            setPlaceRating(previousRating)
+        }
     }
 
     function handleCancelRating() {
@@ -108,11 +157,18 @@ export function ManagePanel({
         setEditingNotes(true)
     }
 
-    function handleConfirmNotes() {
+    async function handleConfirmNotes() {
+        const previousNotes = notes
         setNotes(notesDraft)
         setEditingNotes(false)
-        // TODO: wire this up to the update-location PATCH request
         onUpdateDescription?.(notesDraft)
+
+        try {
+            await updateLocation({ description: notesDraft.trim().length > 0 ? notesDraft : null })
+        } catch (err) {
+            console.error(err)
+            setNotes(previousNotes)
+        }
     }
 
     function handleCancelNotes() {
@@ -281,6 +337,14 @@ export function ManagePanel({
                                 rating={item.rating}
                                 tags={item.tags}
                                 description={item.description}
+                                onUpdateName={(name) => handleUpdateItem(item.id, { name })}
+                                onUpdatePrice={(price) => handleUpdateItem(item.id, { price })}
+                                onUpdateRating={(rating) => handleUpdateItem(item.id, { rating })}
+                                onUpdateDescription={(description) =>
+                                    handleUpdateItem(item.id, {
+                                        description: description.trim().length > 0 ? description : null
+                                    })
+                                }
                             />
                         ))
                     )}
