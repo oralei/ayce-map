@@ -3,6 +3,9 @@ import axios from 'axios'
 import type { PlaceResult } from '../MainMap'
 import type { LocationRecord, ItemRecord } from '../RestaurantView'
 import Tag from '../Tag'
+import TagPicker from '../TagPicker'
+import type { TagChipData } from '../tagCategories'
+import type { TagOption } from '../tagOptions'
 import SavedItem, { type SavedItemData, type NewSavedItemInput } from '../SavedItem'
 import cancelIcon from '../../assets/icons/cancel-x.svg'
 import checkmarkIcon from '../../assets/icons/checkmark.svg'
@@ -11,7 +14,7 @@ interface ManagePanelProps {
     place: PlaceResult
     location: LocationRecord
     items?: SavedItemData[]
-    onRemoveFromList?: () => void
+    onRemoveFromList?: () => Promise<void>
     onUpdateRating?: (rating: number | null) => void
     onUpdateDescription?: (description: string) => void
 }
@@ -47,10 +50,11 @@ export function ManagePanel({
     onUpdateRating,
     onUpdateDescription
 }: ManagePanelProps) {
-    const tags = location.tags ?? []
+    const [tags, setTags] = useState<TagChipData[]>(location.tags ?? [])
     const [isHoveringStatus, setIsHoveringStatus] = useState(false)
     const [items, setItems] = useState<SavedItemData[]>(initialItems)
     const [isAddingItem, setIsAddingItem] = useState(false)
+    const [removing, setRemoving] = useState(false)
 
     // ---- rating editing (0-10) ----
     const [placeRating, setPlaceRating] = useState<number | null>(toNumberOrNull(location.rating))
@@ -62,10 +66,17 @@ export function ManagePanel({
     const [notesDraft, setNotesDraft] = useState('')
     const [editingNotes, setEditingNotes] = useState(false)
 
-    function handleRemoveFromList() {
-        // TODO: wire this up to the remove-from-list DELETE request
-        onRemoveFromList?.()
-        setIsHoveringStatus(false)
+    // on success the parent unmounts this panel, so state only needs
+    // resetting when the delete fails
+    async function handleRemoveFromList() {
+        if (removing) return
+        setRemoving(true)
+        try {
+            await onRemoveFromList?.()
+        } catch {
+            setRemoving(false)
+            setIsHoveringStatus(false)
+        }
     }
 
     async function handleCreateItem(newItem: NewSavedItemInput) {
@@ -117,6 +128,95 @@ export function ManagePanel({
             await axios.patch(`http://localhost:8080/item/${id}`, fields)
         } catch (err) {
             console.error(err)
+        }
+    }
+
+    async function handleDeleteItem(id: string) {
+        const index = items.findIndex((i) => i.id === id)
+        if (index === -1) return
+        const removed = items[index]
+        setItems((prev) => prev.filter((i) => i.id !== id))
+        // still waiting on POST /item for a real id — nothing to delete yet
+        if (id.startsWith('temp-')) return
+
+        try {
+            await axios.delete(`http://localhost:8080/item/${id}`)
+        } catch (err) {
+            console.error(err)
+            // put it back where it was
+            setItems((prev) => [...prev.slice(0, index), removed, ...prev.slice(index)])
+        }
+    }
+
+    // ---- tag handlers ----
+    // Optimistic like the other edits: show the chip immediately, drop it if
+    // the request fails. Locations have no per-row category override, so the
+    // chip uses the tag's own first category (matching GET /location).
+    async function handleAddLocationTag(tag: TagOption) {
+        const chip: TagChipData = { id: tag.id, label: tag.name, category: tag.categories[0] ?? null }
+        setTags((prev) => [...prev, chip])
+
+        try {
+            await axios.post(`http://localhost:8080/location/${location.id}/tags`, { tag_id: tag.id })
+        } catch (err) {
+            console.error(err)
+            setTags((prev) => prev.filter((t) => t.id !== tag.id))
+        }
+    }
+
+    // the picked category is stored as the item_tags category override
+    async function handleAddItemTag(itemId: string, tag: TagOption, category: string | null) {
+        // still waiting on POST /item for a real id — nothing to attach to yet
+        if (itemId.startsWith('temp-')) return
+
+        const chip: TagChipData = { id: tag.id, label: tag.name, category: category ?? tag.categories[0] ?? null }
+        const setItemTags = (update: (tags: TagChipData[]) => TagChipData[]) =>
+            setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, tags: update(i.tags ?? []) } : i)))
+
+        setItemTags((prev) => [...prev, chip])
+
+        try {
+            await axios.post(`http://localhost:8080/item/${itemId}/tags`, { tag_id: tag.id, category })
+        } catch (err) {
+            console.error(err)
+            setItemTags((prev) => prev.filter((t) => t.id !== tag.id))
+        }
+    }
+
+    // Optimistic removal: drop the chip now, put it back in its old spot if the request fails.
+    async function handleRemoveLocationTag(tagId: string) {
+        const index = tags.findIndex((t) => t.id === tagId)
+        if (index === -1) return
+        const removed = tags[index]
+        setTags((prev) => prev.filter((t) => t.id !== tagId))
+
+        try {
+            await axios.delete(`http://localhost:8080/location/${location.id}/tags/${tagId}`)
+        } catch (err) {
+            console.error(err)
+            setTags((prev) => [...prev.slice(0, index), removed, ...prev.slice(index)])
+        }
+    }
+
+    async function handleRemoveItemTag(itemId: string, tagId: string) {
+        // still waiting on POST /item for a real id — it has no saved tags yet
+        if (itemId.startsWith('temp-')) return
+
+        const itemTags = items.find((i) => i.id === itemId)?.tags ?? []
+        const index = itemTags.findIndex((t) => t.id === tagId)
+        if (index === -1) return
+        const removed = itemTags[index]
+
+        const setItemTags = (update: (tags: TagChipData[]) => TagChipData[]) =>
+            setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, tags: update(i.tags ?? []) } : i)))
+
+        setItemTags((prev) => prev.filter((t) => t.id !== tagId))
+
+        try {
+            await axios.delete(`http://localhost:8080/item/${itemId}/tags/${tagId}`)
+        } catch (err) {
+            console.error(err)
+            setItemTags((prev) => [...prev.slice(0, index), removed, ...prev.slice(index)])
         }
     }
 
@@ -236,7 +336,11 @@ export function ManagePanel({
                 >
                     {isHoveringStatus ? (
                         <>
-                            <span className="confirm-delete-label">Remove from list?</span>
+                            <span className="confirm-delete-label">
+                                {items.length > 0
+                                    ? `Remove from list? ${items.length} ${items.length === 1 ? 'item' : 'items'} will be deleted`
+                                    : 'Remove from list?'}
+                            </span>
                             <button
                                 type="button"
                                 className="icon-btn cancel-icon"
@@ -249,6 +353,7 @@ export function ManagePanel({
                                 type="button"
                                 className="icon-btn confirm-icon"
                                 aria-label="Confirm remove from list"
+                                disabled={removing}
                                 onClick={handleRemoveFromList}
                             >
                                 <img src={checkmarkIcon} alt="" />
@@ -266,9 +371,14 @@ export function ManagePanel({
                 <span className="panel-section-label">Tags</span>
                 <div className="location-tags-list">
                     {tags.map((tag) => (
-                        <Tag key={tag.id} label={tag.label} category={tag.category} />
+                        <Tag
+                            key={tag.id}
+                            label={tag.label}
+                            category={tag.category}
+                            onRemove={() => handleRemoveLocationTag(tag.id)}
+                        />
                     ))}
-                    <button type="button" className="tag-add-btn" aria-label="Add a tag">+</button>
+                    <TagPicker appliedTagIds={tags.map((tag) => tag.id)} onSelect={handleAddLocationTag} />
                 </div>
             </div>
 
@@ -337,9 +447,12 @@ export function ManagePanel({
                                 rating={item.rating}
                                 tags={item.tags}
                                 description={item.description}
+                                onDelete={() => handleDeleteItem(item.id)}
                                 onUpdateName={(name) => handleUpdateItem(item.id, { name })}
                                 onUpdatePrice={(price) => handleUpdateItem(item.id, { price })}
                                 onUpdateRating={(rating) => handleUpdateItem(item.id, { rating })}
+                                onAddTag={(tag, category) => handleAddItemTag(item.id, tag, category)}
+                                onRemoveTag={(tagId) => handleRemoveItemTag(item.id, tagId)}
                                 onUpdateDescription={(description) =>
                                     handleUpdateItem(item.id, {
                                         description: description.trim().length > 0 ? description : null

@@ -99,7 +99,7 @@ export function RestaurantView({ place }: RestaurantViewProps) {
         if (!location) return
         let cancelled = false
 
-        axios.get<ItemsResponse>('http://localhost:8080/items', {
+        axios.get<ItemsResponse>('http://localhost:8080/item', {
             params: { location_id: location.id },
         })
             .then((res) => {
@@ -140,6 +140,23 @@ export function RestaurantView({ place }: RestaurantViewProps) {
         }
     }
 
+    // hard delete — the backend also deletes this location's items and tags.
+    // Not optimistic: only flip back to Discover once the delete succeeds.
+    // Rethrows so ManagePanel can reset its confirm state on failure.
+    const handleRemoveFromList = async () => {
+        if (!place || !location) return
+
+        try {
+            await axios.delete(`http://localhost:8080/location/${location.id}`)
+            setLastCheck({ placeId: place.google_place_id, exists: false })
+            setLocation(null)
+            setItemsFetch(null)
+        } catch (err) {
+            console.error(err)
+            throw err
+        }
+    }
+
     switch (viewState) {
         case 'empty':
             return <EmptyState />
@@ -151,7 +168,15 @@ export function RestaurantView({ place }: RestaurantViewProps) {
             // ManagePanel seeds its local state from props on mount, so wait for
             // the items to arrive and remount it per location
             if (!itemsLoaded) return <LoadingState place={place!} />
-            return <ManagePanel key={location!.id} place={place!} location={location!} items={itemsFetch!.items} />
+            return (
+                <ManagePanel
+                    key={location!.id}
+                    place={place!}
+                    location={location!}
+                    items={itemsFetch!.items}
+                    onRemoveFromList={handleRemoveFromList}
+                />
+            )
     }
 }
 

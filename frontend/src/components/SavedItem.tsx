@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import Tag from './Tag'
+import TagPicker from './TagPicker'
 import type { TagChipData } from './tagCategories'
+import type { TagOption } from './tagOptions'
 import trashIcon from '../assets/icons/trash.svg'
 import cancelIcon from '../assets/icons/cancel-x.svg'
 import checkmarkIcon from '../assets/icons/checkmark.svg'
@@ -37,6 +39,8 @@ export interface SavedItemProps {
     onUpdateRating?: (rating: number | null) => void
     onUpdatePrice?: (price: number | null) => void
     onUpdateDescription?: (description: string) => void
+    onAddTag?: (tag: TagOption, category: string | null) => void
+    onRemoveTag?: (tagId: string) => void
     onCreate?: (item: NewSavedItemInput) => void
     onCancelCreate?: () => void
 }
@@ -74,6 +78,8 @@ export function SavedItem({
     onUpdateRating,
     onUpdatePrice,
     onUpdateDescription,
+    onAddTag,
+    onRemoveTag,
     onCreate,
     onCancelCreate
 }: SavedItemProps) {
@@ -102,7 +108,6 @@ export function SavedItem({
     const formattedPrice = formatPrice(itemPrice)
 
     function handleConfirmDelete() {
-        // TODO: wire this up to the delete-item POST request
         onDelete?.()
         setConfirmingDelete(false)
     }
@@ -410,9 +415,17 @@ export function SavedItem({
                     <span className="panel-section-label">Tags</span>
                     <div className="saved-item-tags">
                         {tags.map((tag) => (
-                            <Tag key={tag.id} label={tag.label} category={tag.category} />
+                            <Tag
+                                key={tag.id}
+                                label={tag.label}
+                                category={tag.category}
+                                onRemove={() => onRemoveTag?.(tag.id)}
+                            />
                         ))}
-                        <button type="button" className="tag-add-btn" aria-label="Add a tag">+</button>
+                        <TagPicker
+                            appliedTagIds={tags.map((tag) => tag.id)}
+                            onSelect={(tag, category) => onAddTag?.(tag, category)}
+                        />
                     </div>
                 </>
             )}

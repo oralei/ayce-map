@@ -5,9 +5,11 @@ export interface TagProps {
     label?: string
     category?: string | null
     icon?: ReactNode
+    /** When set, hovering the tag shows a remove button in its top-left corner. */
+    onRemove?: () => void
 }
 
-export function Tag({ label = 'tag', category = null, icon }: TagProps) {
+export function Tag({ label = 'tag', category = null, icon, onRemove }: TagProps) {
     const style = category ? TAG_CATEGORY_STYLES[category] : undefined
     const resolvedIcon = icon ?? style?.icon
 
@@ -19,6 +21,16 @@ export function Tag({ label = 'tag', category = null, icon }: TagProps) {
 
     return (
         <span className="tag" data-category={category ?? undefined} style={colorOverride}>
+            {onRemove && (
+                <button
+                    type="button"
+                    className="tag-remove-btn"
+                    aria-label={`Remove tag ${label}`}
+                    onClick={onRemove}
+                >
+                    −
+                </button>
+            )}
             {resolvedIcon != null && <span className="tag-icon">{resolvedIcon}</span>}
             <span className="tag-label select-none">{label}</span>
         </span>
